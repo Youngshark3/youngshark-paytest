@@ -1,26 +1,49 @@
-// pages/index.js
 import { useState } from 'react';
 import axios from 'axios';
+import { NextPage } from 'next';
 
-export default function Home() {
-  const [amount, setAmount] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+interface PaymentData {
+  amount: number;
+  email: string;
+}
 
-  const handleSubmit = async (e) => {
+interface ResponseData {
+  paymentUrl: string;
+}
+
+const Home: NextPage = () => {
+  const [amount, setAmount] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    if (Number(amount) <= 0) {
+      setError('Amount must be a positive number');
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+      setError('Invalid email address');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post('/api/create-payment', { amount, email });
-      const { paymentUrl } = response.data;
-
-      // Redirect to payment URL
-      window.location.href = paymentUrl;
-    } catch (err) {
-      setError('Payment failed. Please try again.');
+      if (response && response.data) {
+        const { paymentUrl } = response.data as ResponseData;
+        window.location.href = paymentUrl;
+      } else {
+        setError('Payment failed. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -57,4 +80,6 @@ export default function Home() {
       </form>
     </div>
   );
-}
+};
+
+export default Home;
